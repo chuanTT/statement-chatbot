@@ -11,6 +11,22 @@ const isRequired = (value: any) => {
   return isError;
 };
 
+const isMin = (min: number) => (value: any) => {
+  let isError = true;
+  if (isRequired(value) && value.length >= min) {
+    isError = false;
+  }
+  return isError;
+};
+
+const isMax = (max: number) => (value: any) => {
+    let isError = true;
+    if (isRequired(value) && value.length <= max) {
+      isError = false;
+    }
+    return isError;
+  };
+
 const isNumber = (value: any) => {
   let isError = true;
   if (!isRequired(value) || value === "0" || value === 0) {
@@ -130,6 +146,8 @@ export {
   isDependent,
   isValueArray,
   isValidJson,
+  isMin,
+  isMax,
   isValidateObj,
   ObjJson,
 };
