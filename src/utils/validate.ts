@@ -13,7 +13,7 @@ const isRequired = (value: any) => {
 
 const isMin = (min: number) => (value: any) => {
   let isError = true;
-  if (isRequired(value) && value.length >= min) {
+  if (!isRequired(value) && value.length >= min) {
     isError = false;
   }
   return isError;
@@ -21,7 +21,7 @@ const isMin = (min: number) => (value: any) => {
 
 const isMax = (max: number) => (value: any) => {
     let isError = true;
-    if (isRequired(value) && value.length <= max) {
+    if (!isRequired(value) && value.length <= max) {
       isError = false;
     }
     return isError;
