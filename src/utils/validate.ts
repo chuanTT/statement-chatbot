@@ -1,3 +1,4 @@
+import _ = require("lodash");
 import { configValidateValueType } from "../types";
 
 // validate rule
@@ -62,22 +63,117 @@ const isDependent = (value: any, dependent: any) => {
 
 const isValueArray = (value: any) => {
   let isError = true;
-  if (!isRequired(value)) {
-    if (Array.isArray(value)) {
-      isError = false;
-    } else if (typeof value === "string") {
-      value = value.toString();
-      value = value.replace(/^"/g, "");
-      value = value.replace(/"$/g, "");
-      const s = value.search(/^\[/g);
-      const e = value.search(/\]$/g);
+  if (Array.isArray(value)) {
+    isError = false;
+  } else if (typeof value === "string") {
+    value = value.toString();
+    value = value.replace(/^"/g, "");
+    value = value.replace(/"$/g, "");
+    const s = value.search(/^\[/g);
+    const e = value.search(/\]$/g);
 
-      if (s == 0 && e == value?.length - 1) {
-        isError = false;
-      }
+    if (s == 0 && e == value?.length - 1) {
+      isError = false;
     }
   }
   return isError;
+};
+
+export const isValidDate = (dateStr: string) => {
+  const isError = true;
+
+  if (!isRequired(dateStr)) {
+    const d = new Date(dateStr);
+    return isNaN(d as any);
+  }
+  return isError;
+};
+
+export const parseArr = (value: any) => {
+  let arr = [];
+  try {
+    const isArray = Array.isArray(value);
+    arr = isArray ? value : JSON.parse(value);
+  } catch {}
+  return arr;
+};
+
+export const isMinLength = (min: number) =>
+  function childMinLength(value: any) {
+    let isError = true;
+    const arrValue = parseArr(value);
+    if (arrValue.length >= min) {
+      isError = false;
+    }
+    (childMinLength as any).parentName = isMinLength.name;
+    return isError;
+  };
+
+type typeVariable =
+  | "string"
+  | "number"
+  | "bigint"
+  | "boolean"
+  | "symbol"
+  | "undefined"
+  | "object"
+  | "function";
+
+type schemaObjParams = {
+  [key: string]: typeVariable | typeVariable[];
+};
+
+export const isValidateArrayItem = (
+  schemaObj: schemaObjParams | typeVariable = {
+    name: "string",
+    price: "number",
+    count: ["number", "undefined"],
+  }
+) => {
+  const childArrayItem = (value: any[]) => {
+    let isError = false;
+    const arrValue = parseArr(value);
+
+    if (Array.isArray(arrValue)) {
+      for (let obj of arrValue) {
+        if (!_.isObject(schemaObj)) {
+          const typeSchema = schemaObj;
+          const typeParams = typeof obj;
+          if (!(typeParams === typeSchema)) {
+            isError = true;
+            break;
+          }
+        } else {
+          if (_.isEmpty(obj)) {
+            isError = true;
+            break;
+          }
+          for (let key in schemaObj) {
+            const typeSchema = schemaObj[key];
+            const typeParams = typeof obj[key];
+            if (
+              !(
+                (Array.isArray(typeSchema) &&
+                  typeSchema.includes(typeParams)) ||
+                typeParams === typeSchema
+              )
+            ) {
+              isError = true;
+              break;
+            }
+          }
+        }
+      }
+    } else {
+      isError = true;
+    }
+
+    return isError;
+  };
+
+  (childArrayItem as any).parentName = isValidateArrayItem.name;
+
+  return childArrayItem;
 };
 
 const ObjJson = (value: any) => {

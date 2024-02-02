@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { FindOptionsWhere } from "typeorm";
+import { CustomWhereExistsMiddleware } from "../types";
 
 export const asyncHandler = (fn: any) => {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -12,25 +13,29 @@ export const funcWhereFind = <T>({
   obj,
 }: {
   obj: any;
-  where: (keyof T)[] | (keyof T)[][];
+  where: CustomWhereExistsMiddleware<T>[] | CustomWhereExistsMiddleware<T>[][];
 }): FindOptionsWhere<T> | FindOptionsWhere<T>[] => {
-  const isCheck = typeof where?.[0] === "string";
+  const isCheck = !Array.isArray(where?.[0]);
 
   const newWhere: FindOptionsWhere<T> = {};
   const newWhereArr: FindOptionsWhere<T>[] = [];
 
   where.forEach((keys: any) => {
     if (!Array.isArray(keys)) {
-      const value = obj?.[keys];
+      const keyOfValue = typeof keys === "string" ? keys : keys?.value;
+      const keyOfKey = typeof keys === "string" ? keys : keys?.key;
+      const value = obj?.[keyOfValue];
       if (value) {
-        newWhere[keys] = value;
+        newWhere[keyOfKey] = value;
       }
     } else {
       const objKey: FindOptionsWhere<T> = {};
       keys.map((key: any) => {
-        const value = obj?.[key];
+        const keyOfValue = typeof key === "string" ? key : key?.value;
+        const keyOfKey = typeof key === "string" ? key : key?.key;
+        const value = obj?.[keyOfValue];
         if (value) {
-          objKey[key] = value;
+          objKey[keyOfKey] = value;
         }
       });
       newWhereArr.push(objKey);
