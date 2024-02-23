@@ -34,9 +34,9 @@ const validateRequest =
         }
       }
     }
-
+    
     if (_.isEmpty(objErorr)) {
-      next();
+      return next();
     } else {
       if ((req as any)?.file?.filename) {
         unlinkFile((req as any)?.file?.path);
@@ -48,6 +48,7 @@ const validateRequest =
         }
       }
     }
+
     next(UnprocessableEntity());
   };
 

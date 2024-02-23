@@ -109,6 +109,15 @@ export const isMinLength = (min: number) =>
     return isError;
   };
 
+export const isValidUserName = (value: any) => {
+  let isError = true;
+  if (!isRequired(value)) {
+    const regex = new RegExp("^[a-z0-9]+$", "gm");
+    return !regex.test(value);
+  }
+  return isError;
+};
+
 type typeVariable =
   | "string"
   | "number"
