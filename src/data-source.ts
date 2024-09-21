@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { DataSource } from "typeorm";
 import { config } from "dotenv";
-config()
+config();
 
 export const AppDataSource = new DataSource({
   type: "mysql",
@@ -16,4 +16,5 @@ export const AppDataSource = new DataSource({
   entities: [__dirname + "/entity/*.ts"],
   migrations: [__dirname + "/migration/*.ts"],
   subscribers: [__dirname + "/subscribers/*.ts"],
+  charset: "utf8mb4",
 });
