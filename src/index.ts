@@ -1,19 +1,24 @@
 import { AppDataSource } from "./data-source";
 import app from "./server";
 import * as TelegramBot from "node-telegram-bot-api";
-import bankTransactionServices from "./services/banktransaction.service";
 import {
+  arrIgnoreCommads,
   ICommandItem,
-  IObjCommands,
   objCommands,
+  optionDefaultSend,
   TOKEN_TELEGRAM,
 } from "./configs";
-import { joinFullName } from "./helpers";
+import { defaultCommandHelp, ignoreStartHelpFunc } from "./helpers";
+import { EnumCommand } from "./types";
 
 const PORT = 3001;
 
+const checkCommands = {};
+
 AppDataSource.initialize()
   .then(async () => {
+    const notArrayCommands = ignoreStartHelpFunc();
+    const arrKeysCommands = Object.keys(notArrayCommands);
     // Create a bot that uses 'polling' to fetch new updates
     const bot = new TelegramBot(TOKEN_TELEGRAM, { polling: true });
 
@@ -25,17 +30,29 @@ AppDataSource.initialize()
       if (text?.charAt(0) === "/") {
         const command = text?.slice(1);
         const currentCommand: ICommandItem = objCommands[command];
-        const send = currentCommand?.render?.(msg) ?? `Vui lòng`;
-        //
+        if (arrIgnoreCommads?.includes(command as EnumCommand)) {
+          checkCommands[chatId] = "";
+        } else if (arrKeysCommands.includes(command)) {
+          checkCommands[chatId] = command;
+        }
+        const send = currentCommand?.render?.(msg) ?? defaultCommandHelp();
+        bot.sendMessage(chatId, send || "", optionDefaultSend);
+      } else if (checkCommands?.[chatId]) {
+        const key = checkCommands?.[chatId]
+        const currentCommand = checkCommands?.[key] as ICommandItem
+        const dataStr = await currentCommand?.execution(text)
 
-        bot.sendMessage(chatId, send || "", {
-          parse_mode: "HTML",
-          disable_notification: false,
-          protect_content: true,
-          disable_web_page_preview: true,
-          allow_sending_without_reply: false
-        });
+        console.log(text)
+
+        // bot.sendMessage(chatId, dataStr || "", optionDefaultSend);
+      } else if (!checkCommands?.[chatId]) {
+        bot.sendMessage(
+          chatId,
+          objCommands?.help?.render?.(msg),
+          optionDefaultSend
+        );
       }
+
       // const data = await bankTransactionServices.findAllWhere({
       //   where: {
       //     transactionNumber: msg?.text?.trim(),

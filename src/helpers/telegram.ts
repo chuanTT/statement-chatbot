@@ -1,16 +1,22 @@
 import TelegramBot = require("node-telegram-bot-api");
-import { ICommand, objCommands } from "../configs";
+import { arrIgnoreCommads, ICommand, objCommands } from "../configs";
+import { EnumCommand } from "../types";
+import { omit } from "lodash";
+
+export const ignoreStartHelpFunc = () => omit(objCommands, arrIgnoreCommads)
 
 export const joinFullName = (chat: TelegramBot.Chat) => {
   return `${chat.first_name?.trim()} ${chat.last_name?.trim()}`?.trim();
 };
+
+export const joinKeyCommand = (key: ICommand) => `/${key}`;
 
 export const joinCommand = (key: ICommand, desc?: string) => {
   let newDesc = desc;
   if (!newDesc && objCommands?.[key]) {
     newDesc = objCommands?.[key]?.describe;
   }
-  return `/${key} - ${newDesc}`;
+  return `${joinKeyCommand(key)} - ${newDesc}`;
 };
 
 export const joinCommands = (keys: ICommand[]): string => {
@@ -18,9 +24,9 @@ export const joinCommands = (keys: ICommand[]): string => {
 };
 
 export const joinCommandsIgnoreStartHelp = (): string => {
-  const { start, help, ...spread } = objCommands;
-  const arrKeys = Object.keys(spread) as ICommand[];
+  const arrKeys = Object.keys(ignoreStartHelpFunc()) as ICommand[];
   return joinCommands(arrKeys);
 };
 
-export const defaultCommandHelp = (): string => `Bạn dùng lệnh này`
+export const defaultCommandHelp = (): string =>
+  `Câu lệnh này không hợp lệ.\nVui lòng thực hiện lệnh này ${joinKeyCommand(EnumCommand.help)}`;
