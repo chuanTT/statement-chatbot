@@ -1,9 +1,8 @@
-import { readFileSync } from "fs";
 import { AppDataSource } from "./data-source";
-import { BankTransaction } from "./entity/BankTransaction";
 import app from "./server";
-import { join } from "path";
 import * as TelegramBot from "node-telegram-bot-api";
+import bankTransactionServices from "./services/banktransaction.service";
+
 const PORT = 3001;
 
 AppDataSource.initialize()
@@ -29,11 +28,15 @@ AppDataSource.initialize()
 
     // Listen for any kind of message. There are different kinds of
     // messages.
-    bot.on("message", (msg) => {
+    bot.on("message", async (msg) => {
       const chatId = msg.chat.id;
-
+      const data = await bankTransactionServices.findAllWhere({
+        where: {
+          transactionNumber: msg?.text?.trim(),
+        },
+      });
       // // send a message to the chat acknowledging receipt of their message
-      bot.sendMessage(chatId, "Received your message");
+      bot.sendMessage(chatId, JSON.stringify(data));
     });
 
     app.listen(PORT, () => console.log(`server lister port:${PORT} `));
