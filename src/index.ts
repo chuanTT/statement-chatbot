@@ -8,7 +8,7 @@ import {
   optionDefaultSend,
   TOKEN_TELEGRAM,
 } from "./configs";
-import { defaultCommandHelp, ignoreStartHelpFunc } from "./helpers";
+import { defaultCommandHelp, defaultReturnValueCommand, ignoreStartHelpFunc } from "./helpers";
 import { EnumCommand } from "./types";
 
 const PORT = 3001;
@@ -38,13 +38,16 @@ AppDataSource.initialize()
         const send = currentCommand?.render?.(msg) ?? defaultCommandHelp();
         bot.sendMessage(chatId, send || "", optionDefaultSend);
       } else if (checkCommands?.[chatId]) {
-        const key = checkCommands?.[chatId]
-        const currentCommand = checkCommands?.[key] as ICommandItem
-        const dataStr = await currentCommand?.execution(text)
+        const key = checkCommands?.[chatId];
+        const currentCommand = objCommands?.[key] as ICommandItem;
+        let dataStr = await currentCommand?.execution(text);
+        if (dataStr) {
+          checkCommands[chatId] = "";
+        } else {
+          dataStr = defaultReturnValueCommand()
+        }
 
-        console.log(text)
-
-        // bot.sendMessage(chatId, dataStr || "", optionDefaultSend);
+        bot.sendMessage(chatId, dataStr || "", optionDefaultSend);
       } else if (!checkCommands?.[chatId]) {
         bot.sendMessage(
           chatId,

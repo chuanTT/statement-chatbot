@@ -15,6 +15,5 @@ export const AppDataSource = new DataSource({
   logging: false,
   entities: [__dirname + "/entity/*.ts"],
   migrations: [__dirname + "/migration/*.ts"],
-  subscribers: [__dirname + "/subscribers/*.ts"],
-  charset: "utf8mb4",
+  subscribers: [__dirname + "/subscribers/*.ts"]
 });

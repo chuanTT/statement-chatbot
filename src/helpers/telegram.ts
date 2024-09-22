@@ -2,8 +2,10 @@ import TelegramBot = require("node-telegram-bot-api");
 import { arrIgnoreCommads, ICommand, objCommands } from "../configs";
 import { EnumCommand } from "../types";
 import { omit } from "lodash";
+import { BankTransaction } from "../entity/BankTransaction";
+import { numberMoneyVND } from "../utils/functions";
 
-export const ignoreStartHelpFunc = () => omit(objCommands, arrIgnoreCommads)
+export const ignoreStartHelpFunc = () => omit(objCommands, arrIgnoreCommads);
 
 export const joinFullName = (chat: TelegramBot.Chat) => {
   return `${chat.first_name?.trim()} ${chat.last_name?.trim()}`?.trim();
@@ -29,4 +31,23 @@ export const joinCommandsIgnoreStartHelp = (): string => {
 };
 
 export const defaultCommandHelp = (): string =>
-  `Câu lệnh này không hợp lệ.\nVui lòng thực hiện lệnh này ${joinKeyCommand(EnumCommand.help)}`;
+  `Câu lệnh này không hợp lệ.\nVui lòng thực hiện lệnh này ${joinKeyCommand(
+    EnumCommand.help
+  )}`;
+
+export const defaultReturnValueCommand = (): string => `Không tìm thấy kết quả. Bạn có thể chọn lệnh khác\n${joinCommandsIgnoreStartHelp()}`
+
+export const renderStrongColor = (str: string, color: string = "#0088cc") =>
+  `<strong style="color:red;">${str}</strong>`;
+
+export const renderTransaction = (item: BankTransaction): string => {
+  return `Ngày giao dịch ${renderStrongColor(
+    item?.transactionDate
+  )} vào tài khoản ${renderStrongColor(
+    item?.accountNumber
+  )} ${renderStrongColor(item?.bankName)} có mã giao dịch ${renderStrongColor(
+    item?.transactionNumber
+  )} số tiền ${renderStrongColor(
+    numberMoneyVND(item?.amount ?? 0)
+  )} nội dung chuyển khoản ${renderStrongColor(item?.transferContent)}`;
+};

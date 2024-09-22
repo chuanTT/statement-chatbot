@@ -22,11 +22,15 @@ type updateFoodsProps = {
 class BankTransactionServices {
   bankTransactionDB = AppDataSource.getRepository(BankTransaction);
 
-  findAllWhere = async ({
+  findOneTransaction = async ({
     select,
     where,
-    ...rest
+    ...spread
   }: FindOneOptions<BankTransaction>) => {
+    return await this.bankTransactionDB.findOne({ select, where, ...spread });
+  };
+
+  findAllWhere = async ({ where }: FindOneOptions<BankTransaction>) => {
     const result = await this.bankTransactionDB.findBy(where);
     return result;
   };

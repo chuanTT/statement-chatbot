@@ -40,3 +40,13 @@ export const awaitAll = <T, R>(
 
   return Promise.all(promises);
 };
+export const numberMoneyVND = (num: string | number) => {
+  let t = "0";
+  if (num) {
+    if (typeof num === "string") {
+      num = Number(num);
+    }
+    t = num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  }
+  return t;
+};

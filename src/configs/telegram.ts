@@ -3,6 +3,7 @@ import {
   joinCommand,
   joinCommandsIgnoreStartHelp,
   joinFullName,
+  renderTransaction,
 } from "../helpers";
 import { HREF_MTTQ } from "./constant";
 import { EnumCommand } from "../types";
@@ -13,7 +14,7 @@ export type ICommandItem = {
   describe?: string;
   render?: (msg: TelegramBot.Message) => string;
   showDetail?: () => string;
-  execution?: (text: string | number, msg?: TelegramBot.Message) => Promise<string>;
+  execution?: (text: string, msg?: TelegramBot.Message) => Promise<string>;
 };
 
 export interface IObjCommands extends Record<ICommand, ICommandItem> {}
@@ -27,15 +28,12 @@ export const objCommands: IObjCommands = {
     describe: "Tìm kiếm theo mã giao dịch",
     render: () => `Vui lòng nhập mã giao dịch.`,
     execution: async (text) => {
-      const data = await bankTransactionServices.findAllWhere({
+      const data = await bankTransactionServices.findOneTransaction({
         where: {
-          transactionNumber: text?.trim(),
+          transactionNumber: text,
         },
       });
-      console.log(text)
-
-
-      return JSON.stringify(data);
+      return data ? renderTransaction(data) : ''
     },
   },
   transfercontent: {
