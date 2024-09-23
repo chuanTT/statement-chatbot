@@ -11,9 +11,7 @@ const paginationShared = async <T>({
   serviceCallBack,
   customItems,
 }: paginationSharedParams<T>) => {
-  let newPage = page;
-  let newLimit = limit;
-  if (newPage <= 0) {
+  if (page <= 0) {
     page = 1;
   }
 
@@ -21,10 +19,10 @@ const paginationShared = async <T>({
     limit = 500;
   }
 
-  const skip = (newPage - 1) * newLimit;
+  const skip = (page - 1) * limit;
   const [items, total] = await serviceCallBack({
     page: skip,
-    limit: newLimit,
+    limit,
   });
 
   return {

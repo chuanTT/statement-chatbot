@@ -9,6 +9,7 @@ import { HREF_MTTQ } from "./constant";
 import { EnumCommand } from "../types";
 import bankTransactionServices from "../services/banktransaction.service";
 
+
 export type ICommand = keyof typeof EnumCommand;
 export type ICommandItem = {
   describe?: string;
@@ -26,7 +27,7 @@ export const objCommands: IObjCommands = {
   },
   transactioncode: {
     describe: "Tìm kiếm theo mã giao dịch",
-    render: () => `Vui lòng nhập mã giao dịch.`,
+    render: () => `Nhập mã giao dịch.`,
     execution: async (text) => {
       const data = await bankTransactionServices.findOneTransaction({
         where: {

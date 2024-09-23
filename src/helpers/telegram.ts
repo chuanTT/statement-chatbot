@@ -1,4 +1,4 @@
-import TelegramBot = require("node-telegram-bot-api");
+import { Chat } from "node-telegram-bot-api";
 import { arrIgnoreCommads, ICommand, objCommands } from "../configs";
 import { EnumCommand } from "../types";
 import { omit } from "lodash";
@@ -7,7 +7,7 @@ import { numberMoneyVND } from "../utils/functions";
 
 export const ignoreStartHelpFunc = () => omit(objCommands, arrIgnoreCommads);
 
-export const joinFullName = (chat: TelegramBot.Chat) => {
+export const joinFullName = (chat: Chat) => {
   return `${chat.first_name?.trim()} ${chat.last_name?.trim()}`?.trim();
 };
 
@@ -35,7 +35,8 @@ export const defaultCommandHelp = (): string =>
     EnumCommand.help
   )}`;
 
-export const defaultReturnValueCommand = (): string => `Không tìm thấy kết quả. Bạn có thể chọn lệnh khác\n${joinCommandsIgnoreStartHelp()}`
+export const defaultReturnValueCommand = (): string =>
+  `Không tìm thấy kết quả. Bạn có thể chọn lệnh khác\n${joinCommandsIgnoreStartHelp()}`;
 
 export const renderStrongColor = (str: string, color: string = "#0088cc") =>
   `<strong style="color:red;">${str}</strong>`;
