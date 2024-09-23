@@ -1,12 +1,22 @@
 import { AppDataSource } from "./data-source";
 import app from "./server";
-import { botTelegram, ICommandItem, objCommands } from "./configs";
+import {
+  botTelegram,
+  executionCommandFunc,
+  ICommandItem,
+  objCommands,
+  returnExecution,
+  sendArrMessageBot,
+  sendMessageBotHelp,
+} from "./configs";
 import {
   defaultCommandHelp,
   defaultReturnValueCommand,
   ignoreStartHelpFunc,
+  splitPagination,
 } from "./helpers";
 import { sendMessageBot } from "./configs";
+import { has } from "lodash";
 
 const PORT = 3001;
 
@@ -28,16 +38,25 @@ AppDataSource.initialize()
         const currentCommand: ICommandItem = objCommands[command];
         const isKey = arrKeysCommands.includes(command);
         checkCommands[chatId] = isKey ? command : "";
-        const send = currentCommand?.render?.(msg) ?? defaultCommandHelp();
-        sendMessageBot(chatId, send);
+        const arrText = currentCommand?.render?.(msg) ?? defaultCommandHelp();
+        sendArrMessageBot(chatId, arrText);
       } else if (keyCommand) {
-        const currentCommand = objCommands?.[keyCommand] as ICommandItem;
-        const dataStr = await currentCommand?.execution(text);
-        checkCommands[chatId] = "";
-        sendMessageBot(chatId, dataStr || defaultReturnValueCommand());
+        await executionCommandFunc(keyCommand, text, msg);
       } else if (!keyCommand) {
-        sendMessageBot(chatId, objCommands?.help?.render?.(msg));
+        sendMessageBotHelp(chatId);
       }
+    });
+
+    botTelegram.on("callback_query", async (query) => {
+      const { key, page, text } = splitPagination(query?.data);
+      const msg = query?.message;
+      const chatId = msg?.chat?.id;
+      const keyCommand = checkCommands?.[chatId];
+      if (keyCommand === key && page) {
+        await executionCommandFunc(keyCommand, text, msg, +page);
+        return;
+      }
+      sendMessageBotHelp(chatId);
     });
 
     app.listen(PORT, () => console.log(`server lister port:${PORT} `));

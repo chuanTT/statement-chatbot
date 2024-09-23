@@ -5,6 +5,7 @@ config();
 
 export const TOKEN_TELEGRAM = process.env.TOKEN_TELEGRAM;
 export const HREF_MTTQ = process.env.HREF_MTTQ;
+export const TAKE = +(process.env.TAKE ?? 5);
 
 export const arrIgnoreCommads = [EnumCommand.start, EnumCommand.help];
 

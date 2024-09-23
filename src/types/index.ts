@@ -1,3 +1,5 @@
+import * as TelegramBot from "node-telegram-bot-api";
+
 // telegram bot
 export enum EnumCommand {
   "transactioncode" = "transactioncode",
@@ -7,8 +9,5 @@ export enum EnumCommand {
   "start" = "start",
 }
 
-// middleware request
-export type pageAndLimit = {
-  page?: number;
-  limit?: number;
-};
+export type SendMessageOptions = TelegramBot.SendMessageOptions;
+export type InlineKeyboardButton = TelegramBot.InlineKeyboardButton;
