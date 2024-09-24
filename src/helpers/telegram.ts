@@ -1,12 +1,29 @@
 import TelegramBot = require("node-telegram-bot-api");
-import { arrIgnoreCommads, ICommand, objCommands, TAKE } from "../configs";
-import { EnumCommand, InlineKeyboardButton, SendMessageOptions } from "../types";
+import {
+  arrIgnoreCommads,
+  ICommand,
+  INPUT_PAGE,
+  IObjCommands,
+  KEY_SPLIT,
+  objCommands,
+  sendArrMessageBot,
+  TAKE,
+} from "../configs";
+import {
+  EnumCommand,
+  IBotCommand,
+  ICommandExecution,
+  InlineKeyboardButton,
+  paginationTelegramProperty,
+  SendMessageOptions,
+  TPaginationParams,
+} from "../types";
 import { omit } from "lodash";
 import { BankTransaction } from "../entity/BankTransaction";
-import { numberMoneyVND } from "../utils/functions";
-import { calculatorLastPage } from "./functions";
+import { calculatorLastPage, checkNumber, numberMoneyVND } from "./functions";
 
-export const ignoreStartHelpFunc = () => omit(objCommands, arrIgnoreCommads);
+export const ignoreStartHelpFunc = (arrIngore: ICommand[] = arrIgnoreCommads) =>
+  omit(objCommands, arrIngore);
 
 export const joinFullName = (chat?: TelegramBot.Chat) => {
   return `${chat?.first_name?.trim()} ${chat?.last_name?.trim()}`?.trim();
@@ -31,16 +48,28 @@ export const joinCommandsIgnoreStartHelp = (): string => {
   return joinCommands(arrKeys);
 };
 
-export const defaultCommandHelp = (): string =>
-  `Câu lệnh này không hợp lệ.\nVui lòng thực hiện lệnh này ${joinKeyCommand(
-    EnumCommand.help
-  )}`;
+export const myCommands = (): IBotCommand[] => {
+  return Object.keys(ignoreStartHelpFunc([EnumCommand.start])).map((item) => {
+    return {
+      command: item,
+      description: (objCommands as IObjCommands)[item].describe,
+    };
+  });
+};
+
+export const defaultCommandHelp = (): string[] => [
+  "Câu lệnh này không hợp lệ.",
+  `Vui lòng thực hiện lệnh này ${joinKeyCommand(EnumCommand.help)}`,
+];
 
 export const defaultReturnValueCommand = (): string =>
   `Không tìm thấy kết quả.`;
 
-export const renderStrongColor = (str: string) =>
-  `<strong style="color:red;">${str}</strong>`;
+export const defaultThrowPage = (): string => "Số trang không đúng định dạng";
+export const defaultThrowMaxPage = (): string => "Số trang vượt quá cho phép";
+
+export const renderStrongColor = (str: string | number) =>
+  `<b class="text-entity-link">${str}</b>`;
 
 export const renderTransaction = (item: BankTransaction): string => {
   return `Ngày giao dịch ${renderStrongColor(
@@ -58,50 +87,108 @@ export const renderTransactions = (items: BankTransaction[]): string => {
   return items?.map((item) => `${renderTransaction(item)}\n\n`)?.join("");
 };
 
-export const renderKey = (key: string, page: number, total: number, text: string) =>
-  `${key}_${page}_${total}_${text}`;
+export const renderKey = (arr: (string | number)[]) =>
+  arr?.filter((item) => !!item)?.join(KEY_SPLIT);
 
 export const renderReplyMarkup = (
-  key: ICommand,
-  page: number,
-  total: number,
-  text: string
+  obj: TPaginationParams
 ): SendMessageOptions => {
-  const pagination = renderPagination(key, page, total, text);
+  const pagination = renderPagination(obj);
 
   return {
     reply_markup: {
-      inline_keyboard: [pagination],
+      inline_keyboard: pagination,
     },
   };
 };
 
-export const renderPagination = (
-  key: ICommand,
-  page: number,
-  total: number,
-  text: string
-): InlineKeyboardButton[] => {
+export const renderPagination = ({
+  key,
+  page,
+  text,
+  total,
+}: TPaginationParams): InlineKeyboardButton[][] => {
+  const wapperPagination = [];
   const arrPagination: InlineKeyboardButton[] = [];
-  const lastPage = calculatorLastPage(total, TAKE)
-  let prev = renderKey(key, page - 1, total, text);
-  let next = renderKey(key, page + 1, total, text);
+  const lastPage = calculatorLastPage(total, TAKE);
+  const prev = renderKey([key, page - 1, total, text]);
+  const next = renderKey([key, page + 1, total, text]);
+  const inputPage = renderKey([key, page + 1, total, text, INPUT_PAGE]);
 
-  if (!(lastPage === page)) {
-    if (page > 1) {
-      arrPagination.unshift({
-        text: "Trang trước",
-        callback_data: prev,
-      });
-    }
-
-    if (total > page) {
-      arrPagination.push({
-        text: "Trang tiếp theo",
-        callback_data: next,
-      });
-    }
+  const isShowPrev = page > 1;
+  const isShowNext = total > page;
+  if (isShowPrev) {
+    arrPagination.unshift({
+      text: "« Trang trước",
+      callback_data: prev,
+    });
   }
 
-  return arrPagination;
+  if (isShowNext) {
+    arrPagination.push({
+      text: "Trang tiếp theo »",
+      callback_data: next,
+    });
+  }
+
+  if (lastPage > 1 && (isShowNext || isShowPrev)) {
+    wapperPagination.push(arrPagination);
+    wapperPagination.push([
+      { text: "Nhập số trang", callback_data: inputPage },
+    ]);
+  }
+
+  return wapperPagination;
+};
+
+export const paginationTelegram = async ({
+  keyCommand,
+  callBack,
+  text,
+}: paginationTelegramProperty): Promise<ICommandExecution> => {
+  const { data, total, page, lastPage, take } = await callBack();
+  const isShow = total > take;
+  const arrMessage = [];
+  if (isShow) {
+    arrMessage.push(`<b>Có ${numberMoneyVND(total)} kết quả trùng khớp.</b>`);
+    arrMessage.push(
+      `Bạn đang ở trang ${renderStrongColor(
+        page
+      )} trên tổng ${renderStrongColor(lastPage)} trang`
+    );
+  }
+
+  return data?.length > 0
+    ? [
+        ...arrMessage,
+        {
+          value: renderTransactions(data),
+          optons: renderReplyMarkup({
+            key: keyCommand,
+            page,
+            total,
+            text,
+          }),
+        },
+      ]
+    : defaultReturnValueCommand();
+};
+
+export const sendBotThrowPage = async (
+  text: string,
+  chatId: TelegramBot.ChatId,
+  total: string | number
+) => {
+  const isNumber = checkNumber(text);
+  if (!isNumber) {
+    await sendArrMessageBot(chatId, defaultThrowPage());
+    return true
+  } else {
+    const lastPage = calculatorLastPage(+total, TAKE);
+    if (+text > lastPage) {
+      await sendArrMessageBot(chatId, defaultThrowMaxPage());
+      return true
+    }
+  }
+  return undefined
 };

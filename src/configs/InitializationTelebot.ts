@@ -1,42 +1,44 @@
 import * as TelegramBot from "node-telegram-bot-api";
 import { optionDefaultSend, TOKEN_TELEGRAM } from "./constant";
-import { SendMessageOptions } from "../types";
+import { ICommandExecution, SendMessageOptions } from "../types";
 import { ICommandItem, objCommands, returnExecution } from "./telegram";
-import { has } from "lodash";
+import { has, some } from "lodash";
 import { defaultReturnValueCommand } from "../helpers";
+import { removeCache } from "./cache";
 
 export const botTelegram = new TelegramBot(TOKEN_TELEGRAM, {
   polling: true,
 });
 
-export const sendMessageBot = (
+export const sendMessageBot = async (
   chatId: TelegramBot.ChatId,
   text?: string,
   options?: SendMessageOptions
-) => {
-  text &&
-    botTelegram.sendMessage(chatId, text || "", {
+): Promise<TelegramBot.Message | undefined> => {
+  if (text) {
+    return await botTelegram.sendMessage(chatId, text || "", {
       ...optionDefaultSend,
       ...options,
     });
+  }
 };
 
-export const sendArrMessageBot = (
+export const sendArrMessageBot = async (
   chatId: TelegramBot.ChatId,
-  arrText?: (string | returnExecution)[] | string | returnExecution,
+  arrText?: ICommandExecution,
   options: SendMessageOptions = undefined
-) => {
+): Promise<void> => {
   if (arrText && Array.isArray(arrText)) {
-    arrText?.map((text: returnExecution | string) => {
+    for (const item of arrText) {
       let newText = "";
-      if (!(typeof text === "string")) {
-        newText = text?.value;
-        options = text?.optons;
+      if (!(typeof item === "string")) {
+        newText = item?.value;
+        options = item?.optons;
       } else {
-        newText = text;
+        newText = item;
       }
-      sendMessageBot(chatId, newText, options);
-    });
+      await sendMessageBot(chatId, newText, options);
+    }
     return;
   } else {
     let newText = "";
@@ -45,15 +47,12 @@ export const sendArrMessageBot = (
     } else {
       newText = arrText as string;
     }
-    newText && sendMessageBot(chatId, newText, options);
+    newText && (await sendMessageBot(chatId, newText, options));
   }
 };
 
-export const sendMessageBotHelp = (
-  chatId: number,
-  msg?: TelegramBot.Message
-) => {
-  return sendArrMessageBot(chatId, objCommands?.help?.render?.(msg));
+export const sendMessageBotHelp = async (chatId: number) => {
+  return await sendArrMessageBot(chatId, objCommands?.help?.render?.());
 };
 
 export const executionCommandFunc = async (
@@ -65,12 +64,19 @@ export const executionCommandFunc = async (
   const chatId = msg?.chat?.id;
   const currentCommand = objCommands?.[keyCommand] as ICommandItem;
   const dataStr = await currentCommand?.execution(text, msg, skip);
-  const isHasExecution = dataStr && has(dataStr, "value");
-  // if (!isHasExecution) {
-  //   checkCommands[chatId] = "";
-  // }
+  const isHasExecution =
+    dataStr &&
+    (has(dataStr, "value") ||
+      (Array.isArray(dataStr) && some(dataStr, (item) => has(item, "value"))));
+  if (!isHasExecution) {
+    removeCache(chatId);
+  }
   const newOptions = isHasExecution
     ? (dataStr as returnExecution).optons
     : undefined;
-  sendArrMessageBot(chatId, dataStr || defaultReturnValueCommand(), newOptions);
+  await sendArrMessageBot(
+    chatId,
+    dataStr || defaultReturnValueCommand(),
+    newOptions
+  );
 };

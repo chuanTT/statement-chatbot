@@ -3,6 +3,7 @@ import { AppDataSource } from "../data-source";
 import { BankTransaction } from "../entity/BankTransaction";
 import { calculatorLastPage } from "../helpers";
 import { TAKE } from "../configs";
+import { IReturnPagination } from "../types";
 
 class BankTransactionServices {
   bankTransactionDB = AppDataSource.getRepository(BankTransaction);
@@ -24,7 +25,7 @@ class BankTransactionServices {
     where,
     take = TAKE,
     skip,
-  }: FindManyOptions<BankTransaction>) => {
+  }: FindManyOptions<BankTransaction>): Promise<IReturnPagination> => {
     if (skip <= 0) {
       skip = 1;
     }
@@ -46,7 +47,7 @@ class BankTransactionServices {
     return {
       data: transactions,
       total,
-      page: skipQuery,
+      page: skip,
       take,
       lastPage: calculatorLastPage(total, take),
     };
