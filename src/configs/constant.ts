@@ -10,6 +10,7 @@ export const HREF_MTTQ = process.env.HREF_MTTQ;
 export const TAKE = +(process.env.TAKE ?? 5);
 export const INPUT_PAGE = 'inputpage'
 export const KEY_SPLIT = "_"
+export const EXE_SPLIT = "|"
 
 export const arrIgnoreCommads = [EnumCommand.start, EnumCommand.help];
 

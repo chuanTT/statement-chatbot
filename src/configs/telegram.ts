@@ -1,21 +1,16 @@
 import * as TelegramBot from "node-telegram-bot-api";
 import {
-  calculatorLastPage,
   checkNumber,
   joinCommand,
   joinCommandsIgnoreStartHelp,
   joinFullName,
-  numberMoneyVND,
   paginationTelegram,
-  renderReplyMarkup,
   renderStrongColor,
   renderTransaction,
-  renderTransactions,
 } from "../helpers";
-import { HREF_MTTQ, TAKE } from "./constant";
+import { EXE_SPLIT, HREF_MTTQ } from "./constant";
 import { EnumCommand, ICommandExecution, SendMessageOptions } from "../types";
 import bankTransactionServices from "../services/banktransaction.service";
-import { ILike } from "typeorm";
 
 export type ICommand = keyof typeof EnumCommand;
 export type returnExecution = {
@@ -84,6 +79,16 @@ export const objCommands: IObjCommands = {
       });
       return executionPagination;
     },
+  },
+  amount_transfercontent: {
+    describe: "Tìm kiếm theo số tiền và nội dung chuyển khoản",
+    render: () => [
+      "Nhập số tiền và nội dung chuyển khoản",
+      `Yêu cầu định dạng ${renderStrongColor(
+        "Số tiền"
+      )}${EXE_SPLIT}${renderStrongColor("Nội dung chuyển khoản")}`,
+    ],
+    execution: async () => ["Hello"],
   },
   help: {
     describe: "Xem trợ giúp",

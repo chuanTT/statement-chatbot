@@ -9,6 +9,7 @@ export enum EnumCommand {
   "transfercontent" = "transfercontent",
   "help" = "help",
   "start" = "start",
+  "amount_transfercontent" = "amount_transfercontent",
 }
 
 export type SendMessageOptions = TelegramBot.SendMessageOptions;
@@ -44,5 +45,5 @@ export type paginationTelegramProperty = {
 
 export type IFindAllSearchPagination = {
   transferContent?: string;
-  amount?: number
+  amount?: number;
 } & SkipAndTake;

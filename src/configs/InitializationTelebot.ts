@@ -2,7 +2,7 @@ import * as TelegramBot from "node-telegram-bot-api";
 import { optionDefaultSend, TOKEN_TELEGRAM } from "./constant";
 import { ICommandExecution, SendMessageOptions } from "../types";
 import { ICommandItem, objCommands, returnExecution } from "./telegram";
-import { has, some } from "lodash";
+import { has } from "lodash";
 import { defaultReturnValueCommand } from "../helpers";
 import { removeCache } from "./cache";
 
