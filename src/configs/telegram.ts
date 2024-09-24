@@ -15,6 +15,7 @@ import {
 import { HREF_MTTQ, TAKE } from "./constant";
 import { EnumCommand, ICommandExecution, SendMessageOptions } from "../types";
 import bankTransactionServices from "../services/banktransaction.service";
+import { ILike } from "typeorm";
 
 export type ICommand = keyof typeof EnumCommand;
 export type returnExecution = {
@@ -38,16 +39,14 @@ export const objCommands: IObjCommands = {
   amount: {
     describe: "Tìm kiếm theo số tiền chuyển khoản",
     render: () => "Nhập số tiền",
-    execution: async (text, _, skip = 1) => {
+    execution: async (text, _, skip) => {
       const isNumber = checkNumber(text);
       if (!isNumber) return "Số tiền không đúng định dạng";
       const executionPagination = await paginationTelegram({
         keyCommand: EnumCommand.amount,
         callBack: async () =>
-          await bankTransactionServices.findAllPagination({
-            where: {
-              amount: +text,
-            },
+          await bankTransactionServices.findAllSearchPagination({
+            amount: +text,
             skip,
           }),
         text,
@@ -73,7 +72,18 @@ export const objCommands: IObjCommands = {
   transfercontent: {
     describe: "Tìm kiếm theo nội dung chuyển khoản",
     render: () => "Nhập nội dung chuyển khoản",
-    execution: async () => ["Hello"],
+    execution: async (text, _, skip) => {
+      const executionPagination = await paginationTelegram({
+        keyCommand: EnumCommand.transfercontent,
+        callBack: async () =>
+          await bankTransactionServices.findAllSearchPagination({
+            skip,
+            transferContent: text,
+          }),
+        text,
+      });
+      return executionPagination;
+    },
   },
   help: {
     describe: "Xem trợ giúp",

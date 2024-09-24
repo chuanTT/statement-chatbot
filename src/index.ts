@@ -9,6 +9,7 @@ import {
   KEY_SPLIT,
   objCommands,
   PORT,
+  removeCache,
   sendArrMessageBot,
   sendMessageBotHelp,
   setAndDelCache,
@@ -16,6 +17,7 @@ import {
 } from "./configs";
 import {
   defaultCommandHelp,
+  defaultCommandInputPage,
   ignoreStartHelpFunc,
   myCommands,
   renderKey,
@@ -37,7 +39,7 @@ AppDataSource.initialize()
       const text = msg?.text ?? "";
       const keyCommand = getCache(chatId);
 
-      const inputPageKey = renderKey([keyCommand, chatId, INPUT_PAGE]);
+      const inputPageKey = renderKey([chatId, INPUT_PAGE]);
       const inputKey = getCache(inputPageKey);
 
       if (text?.charAt(0) === "/") {
@@ -48,10 +50,11 @@ AppDataSource.initialize()
         const arrText = currentCommand?.render?.(msg) ?? defaultCommandHelp();
         sendArrMessageBot(chatId, arrText);
       } else if (inputKey) {
-        const [text_key, total] = inputKey?.split(KEY_SPLIT);
+        const [text_key, total, key] = inputKey?.split(KEY_SPLIT);
         const error = await sendBotThrowPage(text, chatId, total);
         if (!error) {
-          await executionCommandFunc(keyCommand, text_key, msg, +text);
+          await executionCommandFunc(key, text_key, msg, +text);
+          removeCache(inputPageKey);
         }
       } else if (keyCommand) {
         await executionCommandFunc(keyCommand, text, msg);
@@ -64,21 +67,14 @@ AppDataSource.initialize()
       const { key, page, text, action, total } = splitPagination(query?.data);
       const msg = query?.message;
       const chatId = msg?.chat?.id;
-      const keyCommand = getCache(chatId);
 
-      if (keyCommand === key && page) {
+      if (key && page) {
         if (action) {
-          setCache(
-            renderKey([keyCommand, chatId, action]),
-            renderKey([text, total])
-          );
-          await sendArrMessageBot(
-            chatId,
-            "Vui lòng nhập số trang bạn muốn xem:"
-          );
+          setCache(renderKey([chatId, action]), renderKey([text, total, key]));
+          await sendArrMessageBot(chatId, defaultCommandInputPage());
           return;
         }
-        await executionCommandFunc(keyCommand, text, msg, +page);
+        await executionCommandFunc(key, text, msg, +page);
         return;
       }
       sendMessageBotHelp(chatId);

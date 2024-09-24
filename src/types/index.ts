@@ -19,24 +19,30 @@ export type ICommandExecution =
   | returnExecution;
 export type IBotCommand = TelegramBot.BotCommand;
 
-export type TPaginationParams = {
-  key: ICommand;
-  page: number;
-  total: number;
-  text: string;
+export type SkipAndTake = {
+  skip?: number;
+  take?: number;
 };
 
+export type TPaginationParams = {
+  key: ICommand;
+  total: number;
+  text: string;
+} & Required<Omit<SkipAndTake, "take">>;
 
-export type IReturnPagination = {
-  data: BankTransaction[],
-  total: number,
-  page: number,
-  take: number,
-  lastPage: number,
-}
+export type IReturnPagination = Required<SkipAndTake> & {
+  data: BankTransaction[];
+  total: number;
+  lastPage: number;
+};
 
 export type paginationTelegramProperty = {
-  callBack: () => Promise<IReturnPagination> 
-  text: string
-  keyCommand: ICommand
-}
+  callBack: () => Promise<IReturnPagination>;
+  text: string;
+  keyCommand: ICommand;
+};
+
+export type IFindAllSearchPagination = {
+  transferContent?: string;
+  amount?: number
+} & SkipAndTake;

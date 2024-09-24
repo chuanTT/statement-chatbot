@@ -64,13 +64,10 @@ export const executionCommandFunc = async (
   const chatId = msg?.chat?.id;
   const currentCommand = objCommands?.[keyCommand] as ICommandItem;
   const dataStr = await currentCommand?.execution(text, msg, skip);
-  const isHasExecution =
-    dataStr &&
-    (has(dataStr, "value") ||
-      (Array.isArray(dataStr) && some(dataStr, (item) => has(item, "value"))));
-  if (!isHasExecution) {
-    removeCache(chatId);
-  }
+  const isHasExecution = dataStr && has(dataStr, "value");
+
+  removeCache(chatId);
+
   const newOptions = isHasExecution
     ? (dataStr as returnExecution).optons
     : undefined;

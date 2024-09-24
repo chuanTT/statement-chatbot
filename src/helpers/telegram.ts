@@ -67,6 +67,8 @@ export const defaultReturnValueCommand = (): string =>
 
 export const defaultThrowPage = (): string => "Số trang không đúng định dạng";
 export const defaultThrowMaxPage = (): string => "Số trang vượt quá cho phép";
+export const defaultCommandInputPage = (): string =>
+  "Vui lòng nhập số trang bạn muốn xem";
 
 export const renderStrongColor = (str: string | number) =>
   `<b class="text-entity-link">${str}</b>`;
@@ -104,19 +106,19 @@ export const renderReplyMarkup = (
 
 export const renderPagination = ({
   key,
-  page,
+  skip,
   text,
   total,
 }: TPaginationParams): InlineKeyboardButton[][] => {
   const wapperPagination = [];
   const arrPagination: InlineKeyboardButton[] = [];
   const lastPage = calculatorLastPage(total, TAKE);
-  const prev = renderKey([key, page - 1, total, text]);
-  const next = renderKey([key, page + 1, total, text]);
-  const inputPage = renderKey([key, page + 1, total, text, INPUT_PAGE]);
+  const prev = renderKey([key, skip - 1, total, text]);
+  const next = renderKey([key, skip + 1, total, text]);
+  const inputPage = renderKey([key, skip + 1, total, text, INPUT_PAGE]);
 
-  const isShowPrev = page > 1;
-  const isShowNext = total > page;
+  const isShowPrev = skip > 1;
+  const isShowNext = total > skip;
   if (isShowPrev) {
     arrPagination.unshift({
       text: "« Trang trước",
@@ -146,14 +148,15 @@ export const paginationTelegram = async ({
   callBack,
   text,
 }: paginationTelegramProperty): Promise<ICommandExecution> => {
-  const { data, total, page, lastPage, take } = await callBack();
+  const { data, total, skip, lastPage, take } = await callBack();
   const isShow = total > take;
   const arrMessage = [];
   if (isShow) {
+    arrMessage.push(`Từ khóa tìm kiếm "${renderStrongColor(text)}"`);
     arrMessage.push(`<b>Có ${numberMoneyVND(total)} kết quả trùng khớp.</b>`);
     arrMessage.push(
       `Bạn đang ở trang ${renderStrongColor(
-        page
+        skip
       )} trên tổng ${renderStrongColor(lastPage)} trang`
     );
   }
@@ -165,7 +168,7 @@ export const paginationTelegram = async ({
           value: renderTransactions(data),
           optons: renderReplyMarkup({
             key: keyCommand,
-            page,
+            skip,
             total,
             text,
           }),
@@ -181,14 +184,20 @@ export const sendBotThrowPage = async (
 ) => {
   const isNumber = checkNumber(text);
   if (!isNumber) {
-    await sendArrMessageBot(chatId, defaultThrowPage());
-    return true
+    await sendArrMessageBot(chatId, [
+      defaultThrowPage(),
+      defaultCommandInputPage(),
+    ]);
+    return true;
   } else {
     const lastPage = calculatorLastPage(+total, TAKE);
     if (+text > lastPage) {
-      await sendArrMessageBot(chatId, defaultThrowMaxPage());
-      return true
+      await sendArrMessageBot(chatId, [
+        defaultThrowMaxPage(),
+        defaultCommandInputPage(),
+      ]);
+      return true;
     }
   }
-  return undefined
+  return undefined;
 };

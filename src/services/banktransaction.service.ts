@@ -1,9 +1,9 @@
 import { FindManyOptions, FindOneOptions } from "typeorm";
 import { AppDataSource } from "../data-source";
 import { BankTransaction } from "../entity/BankTransaction";
-import { calculatorLastPage } from "../helpers";
+import { calculatorLastPage, convertViToEn } from "../helpers";
 import { TAKE } from "../configs";
-import { IReturnPagination } from "../types";
+import { IFindAllSearchPagination, IReturnPagination } from "../types";
 
 class BankTransactionServices {
   bankTransactionDB = AppDataSource.getRepository(BankTransaction);
@@ -21,11 +21,12 @@ class BankTransactionServices {
     return result;
   };
 
-  findAllPagination = async ({
-    where,
+  findAllSearchPagination = async ({
+    skip = 1,
     take = TAKE,
-    skip,
-  }: FindManyOptions<BankTransaction>): Promise<IReturnPagination> => {
+    transferContent,
+    amount,
+  }: IFindAllSearchPagination): Promise<IReturnPagination> => {
     if (skip <= 0) {
       skip = 1;
     }
@@ -35,20 +36,36 @@ class BankTransactionServices {
     }
 
     const skipQuery = (skip - 1) * take;
-    const [transactions, total] = await this.bankTransactionDB.findAndCount({
-      where,
-      order: {
-        transactionDate: "ASC",
-      },
-      take,
-      skip: skipQuery,
-    });
+    const queryBuilderTransactions =
+      this.bankTransactionDB.createQueryBuilder("transaction");
+
+    if (transferContent != undefined) {
+      const newTransferContent = convertViToEn(transferContent);
+      queryBuilderTransactions.where(
+        "LOWER(transaction.transferContent) LIKE LOWER(:transferContent)",
+        {
+          transferContent: `%${newTransferContent}%`,
+        }
+      );
+    }
+
+    if (amount !== undefined) {
+      queryBuilderTransactions.where("transaction.amount = :amount", {
+        amount,
+      });
+    }
+
+    const [transactions, total] = await queryBuilderTransactions
+      .orderBy("transaction.transactionDate", "ASC")
+      .take(take)
+      .skip(skipQuery)
+      .getManyAndCount();
 
     return {
       data: transactions,
-      total,
-      page: skip,
+      skip,
       take,
+      total,
       lastPage: calculatorLastPage(total, take),
     };
   };
