@@ -1,7 +1,7 @@
-import { FindManyOptions, FindOneOptions } from "typeorm";
+import { FindOneOptions } from "typeorm";
 import { AppDataSource } from "../data-source";
 import { BankTransaction } from "../entity/BankTransaction";
-import { calculatorLastPage, convertViToEn } from "../helpers";
+import { calculatorLastPage, removeVietnameseTones } from "../helpers";
 import { TAKE } from "../configs";
 import { IFindAllSearchPagination, IReturnPagination } from "../types";
 
@@ -25,6 +25,8 @@ class BankTransactionServices {
     skip = 1,
     take = TAKE,
     transferContent,
+    transferDate,
+    endTransferDate,
     amount,
   }: IFindAllSearchPagination): Promise<IReturnPagination> => {
     if (skip <= 0) {
@@ -40,7 +42,7 @@ class BankTransactionServices {
       this.bankTransactionDB.createQueryBuilder("transaction");
 
     if (transferContent != undefined) {
-      const newTransferContent = convertViToEn(transferContent);
+      const newTransferContent = removeVietnameseTones(transferContent);
       queryBuilderTransactions.where(
         "LOWER(transaction.transferContent) LIKE LOWER(:transferContent)",
         {
@@ -50,9 +52,32 @@ class BankTransactionServices {
     }
 
     if (amount !== undefined) {
-      queryBuilderTransactions.where("transaction.amount = :amount", {
+      const query = "transaction.amount = :amount";
+      const objValue = {
         amount,
-      });
+      };
+      if (!transferContent) {
+        queryBuilderTransactions.where(query, objValue);
+      } else {
+        queryBuilderTransactions.andWhere(query, objValue);
+      }
+    }
+
+    if (transferDate !== undefined) {
+      const isAndWhere = !!amount || !!transferContent;
+      const query = !endTransferDate
+        ? "transaction.transactionDate = :transferDate"
+        : "transaction.transactionDate BETWEEN :transferDate AND :endTransferDate";
+      const objValue = {
+        transferDate,
+        ...(!endTransferDate ? {} : { endTransferDate }),
+      };
+
+      if (isAndWhere) {
+        queryBuilderTransactions.andWhere(query, objValue);
+      } else {
+        queryBuilderTransactions.where(query, objValue);
+      }
     }
 
     const [transactions, total] = await queryBuilderTransactions

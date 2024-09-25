@@ -1,6 +1,7 @@
 import * as TelegramBot from "node-telegram-bot-api";
 import { ICommand, returnExecution } from "../configs";
 import { BankTransaction } from "../entity/BankTransaction";
+import * as dayjs from "dayjs";
 
 // telegram bot
 export enum EnumCommand {
@@ -9,15 +10,22 @@ export enum EnumCommand {
   "transfercontent" = "transfercontent",
   "help" = "help",
   "start" = "start",
-  "amount_transfercontent" = "amount_transfercontent",
+  "amounttransferdate" = "amounttransferdate",
+  "transferdate" = "transferdate",
 }
 
+export type ConfigTypeDate = dayjs.ConfigType;
 export type SendMessageOptions = TelegramBot.SendMessageOptions;
 export type InlineKeyboardButton = TelegramBot.InlineKeyboardButton;
 export type ICommandExecution =
   | (string | returnExecution)[]
   | string
   | returnExecution;
+export type ICommandItemRetrunExecution = {
+  data: ICommandExecution;
+  error?: boolean;
+};
+
 export type IBotCommand = TelegramBot.BotCommand;
 
 export type SkipAndTake = {
@@ -46,4 +54,6 @@ export type paginationTelegramProperty = {
 export type IFindAllSearchPagination = {
   transferContent?: string;
   amount?: number;
+  transferDate?: string;
+  endTransferDate?: string;
 } & SkipAndTake;

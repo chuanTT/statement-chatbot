@@ -1,15 +1,24 @@
 import * as TelegramBot from "node-telegram-bot-api";
 import {
-  checkNumber,
+  checkVaidateThrowRange,
+  defaultErrorFormatDate,
+  defaultThrowNumber,
+  defaultThrowValidDate,
+  formatAmounttransferdate,
+  formatDate,
   joinCommand,
   joinCommandsIgnoreStartHelp,
   joinFullName,
   paginationTelegram,
-  renderStrongColor,
   renderTransaction,
+  returnExeFunction,
 } from "../helpers";
 import { EXE_SPLIT, HREF_MTTQ } from "./constant";
-import { EnumCommand, ICommandExecution, SendMessageOptions } from "../types";
+import {
+  EnumCommand,
+  ICommandItemRetrunExecution,
+  SendMessageOptions,
+} from "../types";
 import bankTransactionServices from "../services/banktransaction.service";
 
 export type ICommand = keyof typeof EnumCommand;
@@ -20,12 +29,13 @@ export type returnExecution = {
 
 export type ICommandItem = {
   describe?: string;
+  name?: string;
   render?: (msg?: TelegramBot.Message) => string | string[];
   execution?: (
     text: string,
     msg?: TelegramBot.Message,
     skip?: number
-  ) => Promise<ICommandExecution>;
+  ) => Promise<ICommandItemRetrunExecution>;
 };
 
 export interface IObjCommands extends Record<ICommand, ICommandItem> {}
@@ -35,8 +45,8 @@ export const objCommands: IObjCommands = {
     describe: "Tìm kiếm theo số tiền chuyển khoản",
     render: () => "Nhập số tiền",
     execution: async (text, _, skip) => {
-      const isNumber = checkNumber(text);
-      if (!isNumber) return "Số tiền không đúng định dạng";
+      const error = defaultThrowNumber(text);
+      if (error) return returnExeFunction(error, true);
       const executionPagination = await paginationTelegram({
         keyCommand: EnumCommand.amount,
         callBack: async () =>
@@ -61,7 +71,7 @@ export const objCommands: IObjCommands = {
           transactionNumber: text,
         },
       });
-      return data ? renderTransaction(data) : "";
+      return returnExeFunction(renderTransaction(data), !data);
     },
   },
   transfercontent: {
@@ -80,15 +90,62 @@ export const objCommands: IObjCommands = {
       return executionPagination;
     },
   },
-  amount_transfercontent: {
-    describe: "Tìm kiếm theo số tiền và nội dung chuyển khoản",
+  transferdate: {
+    describe: "Tìm kiếm theo ngày giao dịch",
+    render: () => ["Nhập ngày giao dịch", defaultErrorFormatDate],
+    execution: async (text, _, skip) => {
+      const [startDate, endDate] = text?.split(EXE_SPLIT) ?? [];
+      const error = checkVaidateThrowRange(startDate, endDate);
+      if (error) return error;
+      const executionPagination = await paginationTelegram({
+        keyCommand: EnumCommand.transferdate,
+        callBack: async () =>
+          await bankTransactionServices.findAllSearchPagination({
+            skip,
+            transferDate: formatDate(startDate),
+            endTransferDate: endDate ? formatDate(endDate) : undefined,
+          }),
+        text,
+      });
+      return executionPagination;
+    },
+  },
+  amounttransferdate: {
+    describe:
+      "Tìm kiếm theo số tiền và nội dung chuyển khoản và ngày chuyển khoản",
     render: () => [
-      "Nhập số tiền và nội dung chuyển khoản",
-      `Yêu cầu định dạng ${renderStrongColor(
-        "Số tiền"
-      )}${EXE_SPLIT}${renderStrongColor("Nội dung chuyển khoản")}`,
+      "Nhập số tiền và nội dung chuyển khoản và ngày chuyển khoản",
+      formatAmounttransferdate,
     ],
-    execution: async () => ["Hello"],
+    execution: async (text, _, skip) => {
+      const [amount, transfercontent, startDate, endDate] =
+        text?.split(EXE_SPLIT) ?? [];
+      const error = defaultThrowNumber(amount);
+      if (error)
+        return returnExeFunction([error, formatAmounttransferdate], true);
+      if (!transfercontent || !transfercontent?.trim()) {
+        return returnExeFunction([formatAmounttransferdate], true);
+      }
+
+      if (startDate) {
+        const error = checkVaidateThrowRange(startDate, endDate);
+        if (error) return error;
+      }
+
+      const executionPagination = await paginationTelegram({
+        keyCommand: EnumCommand.amounttransferdate,
+        callBack: async () =>
+          await bankTransactionServices.findAllSearchPagination({
+            amount: +amount,
+            transferContent: transfercontent ?? "",
+            transferDate: startDate ?? undefined,
+            endTransferDate: endDate ?? undefined,
+            skip,
+          }),
+        text,
+      });
+      return executionPagination;
+    },
   },
   help: {
     describe: "Xem trợ giúp",

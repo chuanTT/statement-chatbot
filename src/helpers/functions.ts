@@ -1,4 +1,8 @@
-import { KEY_SPLIT } from "../configs";
+import { ARR_VALUE_FORMAT_DATE, KEY_SPLIT, STR_FORMAT } from "../configs";
+import * as dayjs from "dayjs";
+import * as customParseFormat from "dayjs/plugin/customParseFormat";
+import {randomBytes} from "crypto";
+dayjs.extend(customParseFormat);
 
 export const checkNumber = (num: string | number) => {
   if (!num) return false;
@@ -11,13 +15,10 @@ export const calculatorLastPage = (total: number, take: number) =>
   Math.ceil(total / take);
 
 export const splitPagination = (key: string) => {
-  const [newKey, page, total, text, action] = key?.split(KEY_SPLIT);
+  const [uuid, action] = key?.split(KEY_SPLIT);
   return {
-    key: newKey,
-    page,
-    total,
-    text,
     action,
+    uuid
   };
 };
 
@@ -32,18 +33,31 @@ export const numberMoneyVND = (num: string | number) => {
   return t;
 };
 
-export function convertViToEn(str: string, toUpperCase = false) {
+export const removeVietnameseTones = (str: string, toUpperCase = false) => {
   str = str.toLowerCase();
-  str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
-  str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
-  str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
-  str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o");
-  str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
-  str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
-  str = str.replace(/đ/g, "d");
-  // Some system encode vietnamese combining accent as individual utf-8 characters
-  str = str.replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, ""); // Huyền sắc hỏi ngã nặng
-  str = str.replace(/\u02C6|\u0306|\u031B/g, ""); // Â, Ê, Ă, Ơ, Ư
-
+  str = str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D");
   return toUpperCase ? str.toUpperCase() : str;
+};
+
+export const formatDate = (date: dayjs.ConfigType, format = STR_FORMAT) => {
+  return dayjs(date, ARR_VALUE_FORMAT_DATE).format(format);
+};
+
+export const daysCustom = (date?: dayjs.ConfigType) =>
+  dayjs(date, ARR_VALUE_FORMAT_DATE);
+
+export const isValidDate = (date: dayjs.ConfigType) => {
+  return dayjs(date, ARR_VALUE_FORMAT_DATE, true).isValid();
+};
+
+
+export const randUuid = () => {
+  const timestamp = Date.now().toString(36);  // Thời gian hiện tại (millisecond) chuyển sang hệ cơ số 36
+  const randomPart = randomBytes(8).toString('hex');  // Tạo 8 byte ngẫu nhiên
+  return timestamp + randomPart;  // Kết hợp timestamp và random string
 }
+

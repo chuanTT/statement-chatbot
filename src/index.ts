@@ -11,19 +11,21 @@ import {
   PORT,
   removeCache,
   sendArrMessageBot,
+  sendBotThrowPage,
   sendMessageBotHelp,
   setAndDelCache,
   setCache,
+  TAKE,
 } from "./configs";
 import {
+  calculatorLastPage,
   defaultCommandHelp,
   defaultCommandInputPage,
   ignoreStartHelpFunc,
   myCommands,
-  renderKey,
-  sendBotThrowPage,
   splitPagination,
 } from "./helpers";
+import { renderKey } from "./helpers/render";
 
 AppDataSource.initialize()
   .then(async () => {
@@ -47,7 +49,7 @@ AppDataSource.initialize()
         const currentCommand: ICommandItem = objCommands[command];
         const isKey = arrKeysCommands.includes(command);
         setAndDelCache(chatId, command, isKey);
-        const arrText = currentCommand?.render?.(msg) ?? defaultCommandHelp();
+        const arrText = currentCommand?.render?.(msg) ?? defaultCommandHelp;
         sendArrMessageBot(chatId, arrText);
       } else if (inputKey) {
         const [text_key, total, key] = inputKey?.split(KEY_SPLIT);
@@ -64,14 +66,21 @@ AppDataSource.initialize()
     });
 
     botTelegram.on("callback_query", async (query) => {
-      const { key, page, text, action, total } = splitPagination(query?.data);
+      const { uuid, action } = splitPagination(query?.data);
       const msg = query?.message;
       const chatId = msg?.chat?.id;
+      const data = getCache(uuid);
 
-      if (key && page) {
-        if (action) {
+      if (data) {
+        const key = data?.['key']
+        const total = data?.['total']
+        const text = data?.['text']
+        const page  = data?.[action]
+
+        if (action === INPUT_PAGE) {
+          const lastPage = calculatorLastPage(+total, TAKE);
           setCache(renderKey([chatId, action]), renderKey([text, total, key]));
-          await sendArrMessageBot(chatId, defaultCommandInputPage());
+          await sendArrMessageBot(chatId, defaultCommandInputPage(lastPage));
           return;
         }
         await executionCommandFunc(key, text, msg, +page);

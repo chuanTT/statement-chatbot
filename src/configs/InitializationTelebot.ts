@@ -1,15 +1,23 @@
 import * as TelegramBot from "node-telegram-bot-api";
-import { optionDefaultSend, TOKEN_TELEGRAM } from "./constant";
+import { optionDefaultSend, TAKE, TOKEN_TELEGRAM } from "./constant";
 import { ICommandExecution, SendMessageOptions } from "../types";
 import { ICommandItem, objCommands, returnExecution } from "./telegram";
 import { has } from "lodash";
-import { defaultReturnValueCommand } from "../helpers";
-import { removeCache } from "./cache";
+import {
+  calculatorLastPage,
+  checkNumber,
+  defaultCommandInputPage,
+  defaultThrowMaxPage,
+  defaultThrowPage,
+  returnValueCommand,
+} from "../helpers";
+import { removeCache, setCache } from "./cache";
 
 export const botTelegram = new TelegramBot(TOKEN_TELEGRAM, {
   polling: true,
 });
 
+//  send messeage
 export const sendMessageBot = async (
   chatId: TelegramBot.ChatId,
   text?: string,
@@ -66,14 +74,41 @@ export const executionCommandFunc = async (
   const dataStr = await currentCommand?.execution(text, msg, skip);
   const isHasExecution = dataStr && has(dataStr, "value");
 
-  removeCache(chatId);
+  if (!dataStr?.error) {
+    removeCache(chatId);
+  }
 
   const newOptions = isHasExecution
-    ? (dataStr as returnExecution).optons
+    ? (dataStr?.data as returnExecution).optons
     : undefined;
   await sendArrMessageBot(
     chatId,
-    dataStr || defaultReturnValueCommand(),
+    dataStr?.data || returnValueCommand,
     newOptions
   );
+};
+
+export const sendBotThrowPage = async (
+  text: string,
+  chatId: TelegramBot.ChatId,
+  total: string | number
+) => {
+  const isNumber = checkNumber(text);
+  const lastPage = calculatorLastPage(+total, TAKE);
+  if (!isNumber) {
+    await sendArrMessageBot(chatId, [
+      defaultThrowPage,
+      ...defaultCommandInputPage(lastPage),
+    ]);
+    return true;
+  } else {
+    if (+text > lastPage) {
+      await sendArrMessageBot(chatId, [
+        defaultThrowMaxPage,
+        ...defaultCommandInputPage(lastPage),
+      ]);
+      return true;
+    }
+  }
+  return undefined;
 };
