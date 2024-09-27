@@ -71,7 +71,7 @@ export const objCommands: IObjCommands = {
           transactionNumber: text,
         },
       });
-      return returnExeFunction(renderTransaction(data), !data);
+      return returnExeFunction(data ? renderTransaction(data) : "", !data);
     },
   },
   transfercontent: {
